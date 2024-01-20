@@ -6,3 +6,4 @@ Aims to explore and uncover various lifecycle nuances for blazor-server.
 - lifecycle is not what you often expected
 - pre-rendering magic and nonsense
 - component initialization firing twice (once for pre-render, and then once the socket connection is established)
+- flashing and blinking while page components load
