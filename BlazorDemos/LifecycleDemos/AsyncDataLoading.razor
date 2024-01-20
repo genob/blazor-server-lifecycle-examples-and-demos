@@ -1,0 +1,81 @@
+﻿@page "/lifecycledemos/async-data-loading"
+
+@inject IJSRuntime JS
+
+<h3>Async Data Loading</h3>
+
+<p>
+   <i>Check the console</i>
+</p>
+
+
+<pre class="code">
+
+</pre>
+
+<p>Notice in th console log (press refresh on the page to trigger a prerender)</p>
+<pre class="output">
+
+</pre>
+<p>
+    <div>@_counter</div>
+    <ul>
+        @foreach (var e in _events)
+        {
+            <li>@e</li>
+        }
+    </ul>
+</p>
+<button @onclick="LogAction">Log Action</button>
+@code {
+
+    public AsyncDataLoading()
+    {
+        Console.WriteLine($"Constructor of {GetType().Name}");
+    }
+    private int _counter = 0;
+    private List<string> _events = new List<string>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Log("Start OnInitializedAsync");
+
+        await Task.Delay(1000);
+
+        Log("End OnInitializedAsync");
+    }
+
+    protected override Task OnParametersSetAsync()
+    {
+        Log("OnParametersSetAsync");
+        return base.OnParametersSetAsync();
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        Log($"OnAfterRenderAsync(firstRender = {firstRender})");
+
+        if (firstRender)
+        {
+            // if you are changing state in the first render, then call StateHasChanged, otherwise it will not be rendered
+            _counter++;
+            //StateHasChanged();
+            
+        }
+        return base.OnAfterRenderAsync(firstRender);
+    }
+
+    private void Log(string e)
+    {
+        var e2 = $"{e} {(JS.IsPreRendering() ? "(pre-render)" : "")}";
+        Console.WriteLine($"!!!!! {e2}");
+        _events.Add(e2);
+    }
+
+    private void LogAction()
+    {
+        _counter++;
+        Log($"--- Action Counter = {_counter}");
+    }
+
+}

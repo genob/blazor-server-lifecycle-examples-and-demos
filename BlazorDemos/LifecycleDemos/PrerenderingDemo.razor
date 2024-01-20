@@ -1,0 +1,97 @@
+﻿@page "/lifecycledemos/prerendering-demo"
+
+@inject IJSRuntime JS
+
+<h3>Prerendering</h3>
+
+<p>
+    (note: written as of .NET 7)<br/><br/>
+    According to docs, <i>While an app is prerendering, certain actions, such as calling into JavaScript (JS), aren't possible.</i>.
+    See: https://learn.microsoft.com/en-us/aspnet/core/blazor/components/lifecycle?view=aspnetcore-7.0#prerendering-with-javascript-interop
+    <br/><br/>
+    This is interesting then, if we know that the Javascript interop is not available, maybe we can use that to know if the lifecycle event is
+    in pre render mode or not. see: https://stackoverflow.com/questions/60589776/detecting-server-pre-rendering-in-blazor-server-app
+    <br/><br/>
+    Using this, we can determine what we want to prerender and maybe avoid calling expensive initialization logic during the prerender cycle if not needed
+</p>
+
+
+<pre class="code">
+@@inject IJSRuntime JS
+
+@@code {
+    bool isPrerenderMode = !(bool)runtime.GetType().GetProperty("IsInitialized").GetValue(runtime);
+}
+</pre>
+
+<p>Notice in th console log (press refresh on the page to trigger a prerender)</p>
+<pre class="output">
+Constructor of PrerenderingDemo
+!!!!! OnInitializedAsync (pre-render)
+!!!!! OnParametersSetAsync (pre-render)
+Constructor of PrerenderingDemo
+!!!!! OnInitializedAsync
+!!!!! OnParametersSetAsync
+!!!!! OnAfterRenderAsync(firstRender = True)
+!!!!! OnAfterRenderAsync(firstRender = False)
+</pre>
+<p>
+    <div>@_counter</div>
+    <ul>
+        @foreach (var e in _events)
+        {
+            <li>@e</li>
+        }
+    </ul>
+</p>
+<button @onclick="LogAction">Log Action</button>
+@code {
+
+    public PrerenderingDemo()
+    {
+        Console.WriteLine($"Constructor of {GetType().Name}");
+    }
+    private int _counter = 0;
+    private List<string> _events = new List<string>();
+
+    protected override Task OnInitializedAsync()
+    {
+        Log("OnInitializedAsync");
+
+        return base.OnInitializedAsync();
+    }
+
+    protected override Task OnParametersSetAsync()
+    {
+        Log("OnParametersSetAsync");
+        return base.OnParametersSetAsync();
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        Log($"OnAfterRenderAsync(firstRender = {firstRender})");
+
+        if (firstRender)
+        {
+            // if you are changing state in the first render, then call StateHasChanged, otherwise it will not be rendered
+            _counter++;
+            StateHasChanged();
+            
+        }
+        return base.OnAfterRenderAsync(firstRender);
+    }
+
+    private void Log(string e)
+    {
+        var e2 = $"{e} {(JS.IsPreRendering() ? "(pre-render)" : "")}";
+        Console.WriteLine($"!!!!! {e2}");
+        _events.Add(e2);
+    }
+
+    private void LogAction()
+    {
+        _counter++;
+        Log($"--- Action Counter = {_counter}");
+    }
+
+}

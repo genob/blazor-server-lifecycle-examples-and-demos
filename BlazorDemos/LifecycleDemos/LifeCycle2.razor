@@ -1,0 +1,53 @@
+﻿@page "/lifecycledemos/lifecycle2"
+@using BlazorDemos.Pages
+<h3>LifeCycle1</h3>
+
+<p>This demonstrates a lifecycle</p>
+<p>
+    <div>@_counter</div>
+    <ul>
+        @foreach (var e in _events)
+        {
+            <li>@e</li>
+        }
+    </ul>
+</p>
+@code {
+
+    private int _counter = 0;
+    private List<string> _events = new List<string>();
+
+    protected override Task OnInitializedAsync()
+    {
+        Log("OnInitializedAsync");
+
+        return base.OnInitializedAsync();
+    }
+
+    protected override Task OnParametersSetAsync()
+    {
+        Log("OnParametersSetAsync");
+        return base.OnParametersSetAsync();
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        Log($"OnAfterRenderAsync(firstRender = {firstRender})");
+
+        if (firstRender)
+        {
+            // if you are changing state in the first render, then call StateHasChanged, otherwise it will not be rendered
+            _counter++;
+            StateHasChanged();
+            
+        }
+        return base.OnAfterRenderAsync(firstRender);
+    }
+
+    private void Log(string e)
+    {
+        Console.WriteLine($"!!!!! {e}");
+        _events.Add(e);
+    }
+
+}

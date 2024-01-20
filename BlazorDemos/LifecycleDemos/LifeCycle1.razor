@@ -1,0 +1,62 @@
+﻿@page "/lifecycledemos/lifecycle1"
+
+@inject IJSRuntime JS
+
+<h3>LifeCycle1</h3>
+
+<p>This demonstrates a plain lifecycle. MAke sure to check the console.</p>
+<p>
+    <div>@_counter</div>
+    <ul>
+        @foreach (var e in _events)
+        {
+            <li>@e</li>
+        }
+    </ul>
+</p>
+<button @onclick="LogSeparator">Log Separator</button>
+@code {
+
+    private int _counter = 0;
+    private List<string> _events = new List<string>();
+
+    protected override Task OnInitializedAsync()
+    {
+        Log("OnInitializedAsync");
+
+        return base.OnInitializedAsync();
+    }
+
+    protected override Task OnParametersSetAsync()
+    {
+        Log("OnParametersSetAsync");
+        return base.OnParametersSetAsync();
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        Log($"OnAfterRenderAsync(firstRender = {firstRender})");
+
+        if (firstRender)
+        {
+            // if you are changing state in the first render, then call StateHasChanged, otherwise it will not be rendered
+            _counter++;
+            StateHasChanged();
+            
+        }
+        return base.OnAfterRenderAsync(firstRender);
+    }
+
+    private void Log(string e)
+    {
+        var e2 = $"{e} {(JS.IsPreRendering() ? "(pre-render)" : "")}";
+        Console.WriteLine($"!!!!! {e2}");
+        _events.Add(e2);
+    }
+
+    private void LogSeparator()
+    {
+        Log("------------------");
+    }
+
+}
