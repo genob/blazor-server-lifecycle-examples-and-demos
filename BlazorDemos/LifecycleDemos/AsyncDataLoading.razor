@@ -1,81 +1,133 @@
 ﻿@page "/lifecycledemos/async-data-loading"
+@using BlazorDemos.Pages
 
 @inject IJSRuntime JS
 
 <h3>Async Data Loading</h3>
 
 <p>
-   <i>Check the console</i>
-</p>
-
-
-<pre class="code">
-
-</pre>
-
-<p>Notice in th console log (press refresh on the page to trigger a prerender)</p>
-<pre class="output">
-
-</pre>
+    Play around with the options and observe the console output.
+    <br/><br/>    
+    This demonstrates the variance of the lifecycle.  By introducing random delays into each lifecyle method, 
+    we simulate real-lie scenarios. i.e. async fetching data from db. </p>
 <p>
-    <div>@_counter</div>
-    <ul>
+    <div>Options (reload page after changing)</div>
+    <ul>        
+        <li><input type="checkbox" @bind="LogStarts" /> Log Method Starts </li>
+        <li><input type="checkbox" @bind="LogEnds" /> Log Method Ends </li>
+        <li><input type="checkbox" @bind="IncludePrerenders" /> include Prerenders </li>
+        <li>
+            <div>Random Delays (try refreshing the page to see variance in execution order)</div>
+            <ul>
+                <li><input type="checkbox" @bind="DelayInitialize" /> <code>OnInitializedAsync</code> delay</li>
+                <li><input type="checkbox" @bind="DelayParams" /> <code>OnParametersSetAsync</code> delay</li>
+                <li><input type="checkbox" @bind="DelayRenderFirst" /> <code>OnAfterRenderAsync(true)</code> delay</li>
+                <li><input type="checkbox" @bind="DelayRenderNotFirst" /> <code>OnAfterRenderAsync(false)</code> delay</li>
+            </ul>
+        </li>
+
+    </ul>
+    @* <div>@_counter</div> *@
+    @* <ul>
         @foreach (var e in _events)
         {
             <li>@e</li>
         }
+    </ul> *@
+</p>
+<p>
+    <h3>What we learned</h3>
+    <ul>
+        <li>When pre-rendering, the <code>OnAfterRenderAsync</code> does not get called</li>
+        <li>The invocation of the async lifecycle methods are in proper order:
+            <code>OnInitializedAsync</code>, 
+            <code>OnParametersSetAsync</code>,
+            <code>OnAfterRenderAsync(true)</code>, 
+            <code>OnAfterRenderAsync(false)</code> (sometimes not called)
+        </li>
+        
+        <li>(Random Delays enabled)
+             The completion of any of the lifecycle methods is entirely dependent on the time it takes to complete</li>
+        <li>
+            <ul>
+                <li>
+                    the <code>OnParametersSetAsync</code> gets invoked AFTER the <code>OnInitializedAsync</code> completes
+                </li>
+                <li><code>OnAfterRenderAsync</code> can start and complete before <code>OnInitializedAsync</code> completes.
+                This means that the component will be rendered even before initialization completes
+                </li>
+                <li>Multiple <code>OnAfterRenderAsync(false)</code> can be executing at the same time</li>
+                <li>If both, <code>OnInitializedAsync</code> and <code>OnParametersSetAsync</code> complete before <code>OnAfterRenderAsync(true)</code> then <code>OnAfterRenderAsync(false)</code> doesnt fire</li>
+                <li><code>OnAfterRenderAsync(true or false)</code> can be invoked before <code>OnInitializedAsync</code> completes</li>
+                <li><code>OnAfterRenderAsync(true or false)</code> can be invoked before <code>OnParametersSetAsync</code> is invoked</li>
+            </ul>
+        </li>
     </ul>
 </p>
-<button @onclick="LogAction">Log Action</button>
 @code {
+
+    private int _counter = 0;
+    //private List<string> _events = new List<string>();
+
+    public static bool LogStarts = true, LogEnds = false;
+
+    public static bool DelayInitialize, DelayRenderFirst, DelayRenderNotFirst, DelayParams = false;
+    public static bool IncludePrerenders = true;
+
+    private int GetRandomDelasMs() => Random.Shared.Next(1, 1000);
 
     public AsyncDataLoading()
     {
-        Console.WriteLine($"Constructor of {GetType().Name}");
+        Console.WriteLine($"\nConstructor of {GetType().Name}");
     }
-    private int _counter = 0;
-    private List<string> _events = new List<string>();
 
     protected override async Task OnInitializedAsync()
     {
-        Log("Start OnInitializedAsync");
+        if (LogStarts) Log("Start OnInitializedAsync", ConsoleColor.Red);
+        if (DelayInitialize) await Task.Delay(GetRandomDelasMs());
+        if (LogEnds) Log("End OnInitializedAsync", ConsoleColor.Red);
 
-        await Task.Delay(1000);
-
-        Log("End OnInitializedAsync");
     }
 
-    protected override Task OnParametersSetAsync()
+    protected override async Task OnParametersSetAsync()
     {
-        Log("OnParametersSetAsync");
-        return base.OnParametersSetAsync();
+        if (LogStarts) Log("Start OnParametersSetAsync", ConsoleColor.Yellow);
+        if (DelayParams) await Task.Delay(GetRandomDelasMs());
+        if (LogEnds) Log("End OnParametersSetAsync", ConsoleColor.Yellow);
+
     }
 
-    protected override Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        Log($"OnAfterRenderAsync(firstRender = {firstRender})");
-
+        if (LogStarts) Log($"Start OnAfterRenderAsync(firstRender = {firstRender})", firstRender ? ConsoleColor.Cyan : ConsoleColor.DarkCyan);
         if (firstRender)
         {
-            // if you are changing state in the first render, then call StateHasChanged, otherwise it will not be rendered
-            _counter++;
-            //StateHasChanged();
-            
+            if (DelayRenderFirst) await Task.Delay(GetRandomDelasMs());
         }
-        return base.OnAfterRenderAsync(firstRender);
+        else
+        {
+            //await Task.Yield();
+            if (DelayRenderNotFirst) await Task.Delay(GetRandomDelasMs());
+        }
+
+
+        if (LogEnds) Log($"End OnAfterRenderAsync(firstRender = {firstRender})", firstRender ? ConsoleColor.Cyan : ConsoleColor.DarkCyan);
+
     }
 
-    private void Log(string e)
+    private void Log(string e, ConsoleColor color = default)
     {
-        var e2 = $"{e} {(JS.IsPreRendering() ? "(pre-render)" : "")}";
-        Console.WriteLine($"!!!!! {e2}");
-        _events.Add(e2);
-    }
+        var isPrerendering = JS.IsPreRendering();
 
-    private void LogAction()
-    {
-        _counter++;
-        Log($"--- Action Counter = {_counter}");
+        if (!IncludePrerenders && isPrerendering) return;
+
+        var e2 = $"{e} {(isPrerendering ? "(pre-render)" : "")}";
+
+        if (color != default) Console.ForegroundColor = color;
+        Console.WriteLine($"! {e2}");
+        if (color != default) Console.ResetColor();
+
+        //_events.Add(e2);
     }
 
 }

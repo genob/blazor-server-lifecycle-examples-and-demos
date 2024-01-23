@@ -1,6 +1,9 @@
 ﻿@page "/lifecycledemos/lifecycle2"
 @using BlazorDemos.Pages
-<h3>LifeCycle1</h3>
+
+@inject IJSRuntime JS
+
+<h3>LifeCycle2</h3>
 
 <p>This demonstrates a lifecycle</p>
 <p>
@@ -17,37 +20,55 @@
     private int _counter = 0;
     private List<string> _events = new List<string>();
 
+    public LifeCycle2()
+    {
+        Console.WriteLine($"\nConstructor of {GetType().Name}");
+    }
+
     protected override Task OnInitializedAsync()
     {
-        Log("OnInitializedAsync");
+        Log("Start OnInitializedAsync", ConsoleColor.Red);
 
-        return base.OnInitializedAsync();
+        Log("End OnInitializedAsync", ConsoleColor.Red);
+
+        return Task.CompletedTask;
     }
 
     protected override Task OnParametersSetAsync()
     {
-        Log("OnParametersSetAsync");
-        return base.OnParametersSetAsync();
+        Log("Start OnParametersSetAsync", ConsoleColor.Yellow);
+        
+        Log("End OnParametersSetAsync", ConsoleColor.Yellow);
+
+        return Task.CompletedTask;
     }
 
     protected override Task OnAfterRenderAsync(bool firstRender)
     {
-        Log($"OnAfterRenderAsync(firstRender = {firstRender})");
+        Log($"Start OnAfterRenderAsync(firstRender = {firstRender})", firstRender ? ConsoleColor.Cyan : ConsoleColor.DarkCyan);
 
-        if (firstRender)
-        {
-            // if you are changing state in the first render, then call StateHasChanged, otherwise it will not be rendered
-            _counter++;
-            StateHasChanged();
+        // if (firstRender)
+        // {
+        //     // if you are changing state in the first render, then call StateHasChanged, otherwise it will not be rendered
+        //     _counter++;
+        //     StateHasChanged();
             
-        }
+        // }
+
+        Log($"End OnAfterRenderAsync(firstRender = {firstRender})", firstRender ? ConsoleColor.Cyan : ConsoleColor.DarkCyan);
+
         return base.OnAfterRenderAsync(firstRender);
     }
 
-    private void Log(string e)
+    private void Log(string e, ConsoleColor color = default)
     {
-        Console.WriteLine($"!!!!! {e}");
-        _events.Add(e);
+        var e2 = $"{e} {(JS.IsPreRendering() ? "(pre-render)" : "")}";
+
+        if (color != default) Console.ForegroundColor = color;
+        Console.WriteLine($"! {e2}");
+        if (color != default) Console.ResetColor();
+
+        _events.Add(e2);
     }
 
 }

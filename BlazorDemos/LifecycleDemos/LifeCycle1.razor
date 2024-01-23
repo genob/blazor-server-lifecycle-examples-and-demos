@@ -20,37 +20,40 @@
     private int _counter = 0;
     private List<string> _events = new List<string>();
 
+    public LifeCycle1()
+    {
+        Console.WriteLine($"\nConstructor of {GetType().Name}");
+    }
+
     protected override Task OnInitializedAsync()
     {
-        Log("OnInitializedAsync");
+        Log("OnInitializedAsync", ConsoleColor.Red);
 
         return base.OnInitializedAsync();
     }
 
     protected override Task OnParametersSetAsync()
     {
-        Log("OnParametersSetAsync");
+        Log("OnParametersSetAsync", ConsoleColor.Yellow);
         return base.OnParametersSetAsync();
     }
 
     protected override Task OnAfterRenderAsync(bool firstRender)
     {
-        Log($"OnAfterRenderAsync(firstRender = {firstRender})");
+        Log($"OnAfterRenderAsync(firstRender = {firstRender})", firstRender ? ConsoleColor.Cyan : ConsoleColor.DarkCyan);
 
-        if (firstRender)
-        {
-            // if you are changing state in the first render, then call StateHasChanged, otherwise it will not be rendered
-            _counter++;
-            StateHasChanged();
-            
-        }
+  
         return base.OnAfterRenderAsync(firstRender);
     }
 
-    private void Log(string e)
+    private void Log(string e, ConsoleColor color = default)
     {
         var e2 = $"{e} {(JS.IsPreRendering() ? "(pre-render)" : "")}";
-        Console.WriteLine($"!!!!! {e2}");
+
+        if (color != default) Console.ForegroundColor = color;
+        Console.WriteLine($"! {e2}");
+        if (color != default) Console.ResetColor();
+
         _events.Add(e2);
     }
 
